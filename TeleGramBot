@@ -36,12 +36,10 @@ send_text(){
 send_msg(){
   # da usare send_msg "quello che devo scrivere"
 	telegram-cli -WDe "msg $1 $2" #>> /dev/null 2>&1
-#	STRRAW=$(telegram-cli -De "msg $1 $2"| grep -i '>>> \|»»» ' | sed 's/\»/\>/g;s/.*]\ \ //g;s/\[\[0m\$/\\n/g')
 } # send_msg (simple msg )
 
 send_photo(){
 	telegram-cli -WDe "send_photo $1 $2"
-#	STRRAW=$(telegram-cli -De "send_photo $1 $2"| grep -i '>>> \|»»» ' | sed 's/\»/\>/g;s/.*]\ \ //g;s/\[\[0m\$/\\n/g')
 }
 
 inthelp(){
@@ -166,12 +164,12 @@ else
 						send_msg "$NICK" "$(op "$STRCLEAN" "+") "
 						;;
 					 'meteo')
-                                                touch meteo.txt
-                                                CITY=$(echo $STRCLEAN | awk '{print $(NF)}')           
-                                                weatherman -x "$CITY, italy" > meteo.txt
-                                                send_text "$NICK" "meteo.txt"
-                                                rm meteo.txt
-                                                ;;
+            touch "$BUFFER"
+            CITY=$(echo "$STRCLEAN" | awk '{print $(NF)}')           
+            weatherman -x "$CITY, italy" > "$BUFFER"
+            send_text "$NICK" "$BUFFER"
+            rm "$BUFFER"
+            ;;
 					'sottrai')
 						send_msg "$NICK" "$(op "$STRCLEAN" "-")"
 						;;
