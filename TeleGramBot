@@ -62,6 +62,7 @@ inthelp(){
 	echo -e "--info -> stampa informazioni su questo bot" >> "$BUFFER"
 	echo -e "--host <sito> -> stampa IP del sito" >> "$BUFFER"
 	echo -e "--google <str da cercare> -> cerca su google" >> "$BUFFER"
+	echo -e "--meteo <location> -> meteo della tua citta" >> "$BUFFER"
 	send_text "$1" "$BUFFER"
 	rm "$BUFFER"
 }
@@ -164,6 +165,13 @@ else
 					'somma')
 						send_msg "$NICK" "$(op "$STRCLEAN" "+") "
 						;;
+					 'meteo')
+                                                touch meteo.txt
+                                                CITY=$(echo $STRCLEAN | awk '{print $(NF)}')           
+                                                weatherman -x "$CITY, italy" > meteo.txt
+                                                send_text "$NICK" "meteo.txt"
+                                                rm meteo.txt
+                                                ;;
 					'sottrai')
 						send_msg "$NICK" "$(op "$STRCLEAN" "-")"
 						;;
