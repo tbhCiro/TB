@@ -163,13 +163,6 @@ else
 					'somma')
 						send_msg "$NICK" "$(op "$STRCLEAN" "+") "
 						;;
-					 'meteo')
-            touch "$BUFFER"
-            CITY=$(echo "$STRCLEAN" | awk '{print $(NF)}')           
-            weatherman -x "$CITY, italy" > "$BUFFER"
-            send_text "$NICK" "$BUFFER"
-            rm "$BUFFER"
-            ;;
 					'sottrai')
 						send_msg "$NICK" "$(op "$STRCLEAN" "-")"
 						;;
@@ -185,6 +178,13 @@ else
 					'cacca')
 						send_photo "$NICK" "$HOME/cacca.png"
 						send_msg "$NICK" "Tutta per te $NICK2"
+						;;
+					'meteo')
+						touch "$BUFFER"
+						CITY=$(echo "$STRCLEAN" | awk '{print $(NF)}')           
+						weatherman -x "$CITY, italy" > "$BUFFER"
+						send_text "$NICK" "$BUFFER"
+						rm "$BUFFER"
 						;;
 					'state')
 						if [[ "$NICK" == "$ADMIN" ]]; then
