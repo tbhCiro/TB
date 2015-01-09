@@ -1,0 +1,228 @@
+#!/bin/bash
+### VARS ###
+BOTNICK=""
+RUNNER="$USER"
+SCRIPTNAME=$(echo $0 | sed 's/.*\///g')
+LCK="/tmp/$RUNNER.$SCRIPTNAME.lck"
+OLDPID="/tmp/TeleGramBot.oldpid"
+BUFFER="/tmp/$SCRIPTNAME.buffer"
+ADMIN=""
+SOURCE="https://github.com/umby213/TB"
+VERS="0.0.1beta"
+DEBUG="0"
+
+if [[ "$1" == "--stop" ]]; then 
+	rm "$OLDPID" 2> /dev/null
+	rm "$LCK" 2> /dev/null 
+	killall "$SCRIPTNAME"
+fi
+
+#### Check if Telegram-cli is blocked ####
+#### Beta ####
+NEWPID=$(pgrep -u "$USER" -x telegram-cli)
+if [[ -f "$OLDPID" ]]; then
+	[[ "$(cat $OLDPID)" == "$NEWPID" ]] && eval "$0 --stop"
+else
+	echo "0" > "$OLDPID" 
+fi
+[[ "${#NEWPID}" != "0" ]] && echo "$NEWPID" > "$OLDPID"
+#### END ####
+
+send_text(){
+	[[ "$DEBUG" == "1" ]] && telegram-cli -WDe "send_text $1 $2" 
+	telegram-cli -WDe "send_text $1 $2" >> /dev/null 2>&1
+} # send_text (FILE)
+
+send_msg(){
+  # da usare send_msg "quello che devo scrivere"
+	telegram-cli -WDe "msg $1 $2" #>> /dev/null 2>&1
+#	STRRAW=$(telegram-cli -De "msg $1 $2"| grep -i '>>> \|»»» ' | sed 's/\»/\>/g;s/.*]\ \ //g;s/\[\[0m\$/\\n/g')
+} # send_msg (simple msg )
+
+send_photo(){
+	telegram-cli -WDe "send_photo $1 $2"
+#	STRRAW=$(telegram-cli -De "send_photo $1 $2"| grep -i '>>> \|»»» ' | sed 's/\»/\>/g;s/.*]\ \ //g;s/\[\[0m\$/\\n/g')
+}
+
+inthelp(){
+	touch "$BUFFER"
+	echo -e "Da $BOTNICK" > "$BUFFER"
+	echo -e "Messaggio di help per $2: "	>> "$BUFFER"
+	echo -e "Comandi accettati: " >> "$BUFFER"
+	echo -e "--ping -> risponde PONG" >> "$BUFFER"
+	echo -e "--help -> stampa questo messaggio." >> "$BUFFER"
+	echo -e "--blasfem -> ritorna una bestemmia" >> "$BUFFER"
+	echo -e "--suca -> tua zia" >> "$BUFFER"
+	echo -e "--hello -> saluta educatamente" >> "$BUFFER"
+	echo -e "--somma <m> <n> -> somma m e n" >> "$BUFFER"
+	echo -e "--sottrai <m> <n> -> sottrae m e n" >> "$BUFFER"
+	echo -e "--moltiplica <m> <n> -> moltiplica m e n" >> "$BUFFER"
+	echo -e "--dividi <m> <n> -> divide m e n" >> "$BUFFER"
+	echo -e "--cacca -> invia una simpatica immagine" >> "$BUFFER"
+	echo -e "--info -> stampa informazioni su questo bot" >> "$BUFFER"
+	echo -e "--host <sito> -> stampa IP del sito" >> "$BUFFER"
+	echo -e "--google <str da cercare> -> cerca su google" >> "$BUFFER"
+	send_text "$1" "$BUFFER"
+	rm "$BUFFER"
+}
+
+botinfo(){
+	touch "$BUFFER"
+	echo -e "Ciao "$2":" >> "$BUFFER"
+	echo -e "Sono un bot malscritto in puro bash" >> "$BUFFER"
+	echo -e "mi chiamo $BOTNICK (versione "$VERS")." >> "$BUFFER"
+	echo -e "Puoi trovare il mio sorgente su github:" >> "$BUFFER"
+	echo -e "$SOURCE" >> "$BUFFER"
+	send_text "$1" "$BUFFER"
+	rm "$BUFFER"
+}
+
+isGroup(){
+	# use: isGroup raw string n
+	echo "$1"|sed -r 's/>>>.*//g;s/.*35\;1m|\[0m.*|\^\[//g;s/\ /\_/g'
+}
+
+jesus(){
+	SOUR="https://dl.dropboxusercontent.com/u/51889882/blasfem/blasfemy.txt"
+	ALL=$(curl -s $SOUR)
+	NUM=$(echo $ALL | wc -w)
+	echo $ALL | cut -d' ' -f$(shuf -i 1-$NUM -n 1) | sed -e 's/\_/\ /g'
+}
+
+is_integer() {
+  if [[ "$1" =~ ^[0-9]+$ ]]; then
+    echo 1;
+  else
+    echo 0;
+  fi
+}
+
+calc () {
+	awk "BEGIN { print $* ; }"
+}
+
+op (){
+	N1=$(echo "$1"|awk '{print $(NF-1)}')
+	N2=$(echo "$1"|awk '{print $(NF)}')
+	if [[ "$(is_integer $(echo "$N2"|sed -r 's/\.//g'))" == "1" ]] && 
+		 [[ "$(is_integer $(echo "$N1"|sed -r 's/\.//g'))" == "1" ]]; then
+		calc  "$N1" "$2" "$N2" 
+	else
+		echo no integer found!
+	fi
+}
+
+if [[ -f "$LCK" ]]; then
+	exit 1 # se esiste il file $LCK non eseguo niente
+else
+	touch "$LCK" # creo il file $LCK
+	# while in ascolto
+	while true; do
+		TELEG_OUT=$(telegram-cli -e "safe_quit" | grep -i '>>> \|»»» ' | sed 's/\»/\>/g;s/.*]\ \ //g;s/\[\[0m\$/\\n/g')
+		[[ "$DEBUG" == "1" ]] && [[ "${#TELEG_OUT}" != "0" ]]  && echo -e ">> <DEBUG> $TELEG_OUT"  
+		NUM=$(echo -e "$TELEG_OUT"| wc -l)  # numero di messaggi in input
+		[[ "${#TELEG_OUT}" == "0" ]] && NUM=0
+		[[ "$DEBUG" == "1" ]] && echo "$NUM"
+		for i in $(seq 1 "$NUM"); do
+			STRRAW=$(echo -e "$TELEG_OUT"|head -n"$i"|tail -n1)
+			STRCLEAN=$(echo "$STRRAW"|sed -r 's/.*>>>\ |\\n|.{4}$.*//g')
+			[[ "$DEBUG" == "1" ]] && echo -e "STRRAW: $STRRAW\nSTRCLEAN: $STRCLEAN"
+			NEWCOMMAND=$(echo "$STRCLEAN" | cut -d' ' -f1)
+			NICK=$(isGroup "$STRRAW")
+			[[ "$NICK" == "(null)" ]] && break # e` un errore molto occasionale di telegram-cli
+			if [[ "${#NICK}" == "0" ]]; then
+				echo $STRRAW
+				NICK2=$(echo "$STRRAW"|sed -r 's/>>>.*|.*\[\[1\;31m|\^\[\[0\;31m\^\[\[0m\^\[\[34\;1m.*//g')
+				NICK=$(echo "$NICK2" | sed 's/\ /\_/g' )
+			else
+				NICK2=$(echo "$STRRAW"|sed -r 's/.*\[1\;31m|\[0\;31m.*//g;s/\^\[//g')
+			fi
+			# cerca parole in tutta la stringa parsata
+			for word in $(echo $STRCLEAN); do
+					[[ "$word" == "M-pM-^_M-^RM-^Z" ]] && send_msg "$NICK" "<3"
+					[[ "$(echo $word | sed -r 's/\,|\.|\!//g')" == "top" ]] && send_msg "$NICK" "Solo Top"
+					[[ "$word" == "Pinpin" ]] && send_msg "$NICK" "Sono io $BOTNICK *_*"
+					[[ "$DEBUG" == "1" ]] && echo -n "$word "
+			done
+			[[ "$DEBUG" == "1" ]] && echo 
+			if [[ "$NEWCOMMAND" == "Pi" ]] || [[ "$NEWCOMMAND" == "pi" ]]; then
+				COMMAND=$(echo $STRCLEAN | sed -r 's/.*\-|\ .*//g')
+				echo -e "Channel: "$NICK"  - Command: "$COMMAND""
+				case "$COMMAND" in
+					'Pi'|'pi')
+						true
+						;;
+					'ping'|'p')
+						send_msg "$NICK" "PONG!"
+						;;
+					'blasfem')
+						send_msg "$NICK" "$(jesus)"	
+						;;
+					'hello')
+						send_msg "$NICK" "Ciao $NICK2"
+						;;
+					'somma')
+						send_msg "$NICK" "$(op "$STRCLEAN" "+") "
+						;;
+					'sottrai')
+						send_msg "$NICK" "$(op "$STRCLEAN" "-")"
+						;;
+					'dividi')
+						send_msg "$NICK" "$(op "$STRCLEAN" "/")"
+						;;
+					'moltiplica')
+						send_msg "$NICK" "$(op "$STRCLEAN" "*")"
+						;;
+					'suca')
+						send_msg "$NICK" "Tua zia!"
+						;;
+					'cacca')
+						send_photo "$NICK" "$HOME/cacca.png"
+						send_msg "$NICK" "Tutta per te $NICK2"
+						;;
+					'state')
+						if [[ "$NICK" == "$ADMIN" ]]; then
+							touch "$BUFFER"
+							echo "RAM" >> "$BUFFER"
+							free -h >> "$BUFFER"
+							echo "Uptime" >> "$BUFFER"
+							uptime >> "$BUFFER"
+							echo "USER" >> "$BUFFER"
+							echo $USER >> "$BUFFER"
+							send_text "$NICK" "$BUFFER"
+							rm "$BUFFER"
+						else
+							inthelp "$NICK" "$NICK2"
+						fi
+						;;
+					'info')
+						botinfo "$NICK" "$NICK2"
+						;;
+					'google'|'g')
+						GOOGLE="https://www.google.it/#q="
+						SEARCHSTR=$(echo "$STRCLEAN"|sed 's/.*\-\-google\ //g;s/\ /\+/g')
+						send_msg "$NICK" "$GOOGLE$SEARCHSTR"
+						;;
+					'host')
+						SITE=$(echo "$STRCLEAN"|awk '{print $NF}')
+						IP=$(host "$SITE"|awk '/ has address /{print $NF}' |head -n1)
+						send_msg "$NICK" "$NICK2: $SITE -> $IP"
+						;;
+					'help'|'h')
+						inthelp "$NICK" "$NICK2"
+						;;
+					*)
+						send_msg "$NICK" "Comando sconosciuto. Dai un Pi --help."
+						;;
+				esac
+			fi
+			if [[ "$DEBUG" == "0" ]]; then
+				echo -e "$TELEG_OUT" >> "$HOME/TB_($(date +%F))_logs.log"
+			else
+				echo -e "$TELEG_OUT" >> ./parsami.log
+			fi
+			killall telegram-cli 2> /dev/null
+		done
+		sleep 2
+	done
+fi
