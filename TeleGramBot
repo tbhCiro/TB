@@ -18,7 +18,6 @@ if [[ "$1" == "--stop" ]]; then
 fi
 
 #### Check if Telegram-cli is blocked ####
-#### Beta ####
 NEWPID=$(pgrep -u "$USER" -x telegram-cli)
 if [[ -f "$OLDPID" ]]; then
 	[[ "$(cat $OLDPID)" == "$NEWPID" ]] && eval "$0 --stop"
@@ -44,34 +43,38 @@ send_photo(){
 
 inthelp(){
 	touch "$BUFFER"
-	echo -e "Da $BOTNICK" > "$BUFFER"
-	echo -e "Messaggio di help per $2: "	>> "$BUFFER"
-	echo -e "Comandi accettati: " >> "$BUFFER"
-	echo -e "--ping -> risponde PONG" >> "$BUFFER"
-	echo -e "--help -> stampa questo messaggio." >> "$BUFFER"
-	echo -e "--blasfem -> ritorna una bestemmia" >> "$BUFFER"
-	echo -e "--suca -> tua zia" >> "$BUFFER"
-	echo -e "--hello -> saluta educatamente" >> "$BUFFER"
-	echo -e "--somma <m> <n> -> somma m e n" >> "$BUFFER"
-	echo -e "--sottrai <m> <n> -> sottrae m e n" >> "$BUFFER"
-	echo -e "--moltiplica <m> <n> -> moltiplica m e n" >> "$BUFFER"
-	echo -e "--dividi <m> <n> -> divide m e n" >> "$BUFFER"
-	echo -e "--cacca -> invia una simpatica immagine" >> "$BUFFER"
-	echo -e "--info -> stampa informazioni su questo bot" >> "$BUFFER"
-	echo -e "--host <sito> -> stampa IP del sito" >> "$BUFFER"
-	echo -e "--google <str da cercare> -> cerca su google" >> "$BUFFER"
-	echo -e "--meteo <location> -> meteo della tua citta" >> "$BUFFER"
+	cat > "$BUFFER" << EOF
+Da ${BOTNICK:-BetaBot}
+Messaggio di help per $2: 
+Comandi accettati: 
+--ping -> risponde PONG
+--help -> stampa questo Messaggio
+--blasfem -> ritorna una bestemmia
+--suca -> tua zia
+--hello -> saluta educatamente
+--somma <m> <n> -> somma m e n
+--sottrai <m> <n> -> sottrae m e n
+--moltiplica <m> <n> -> moltiplica m e n
+--dividi <m> <n> -> divide m e n
+--cacca -> invia una simpatica immagine
+--info -> stampa informazioni su questo bot
+--host <sito> -> stampa IP del sito
+--google <str da cercare> -> cerca su google
+--meteo <location> -> meteo della tua citta\`
+EOF
 	send_text "$1" "$BUFFER"
 	rm "$BUFFER"
 }
 
 botinfo(){
 	touch "$BUFFER"
-	echo -e "Ciao "$2":" >> "$BUFFER"
-	echo -e "Sono un bot malscritto in puro bash" >> "$BUFFER"
-	echo -e "mi chiamo $BOTNICK (versione "$VERS")." >> "$BUFFER"
-	echo -e "Puoi trovare il mio sorgente su github:" >> "$BUFFER"
-	echo -e "$SOURCE" >> "$BUFFER"
+	cat > "$BUFFER" << EOF
+Ciao $2:
+Sono un bot malscritto in puro bash
+mi chiamo ${BOTNICK:-BetaBot} (versione $VERS).
+Puoi trovare il mio sorgente su github:
+$SOURCE
+EOF
 	send_text "$1" "$BUFFER"
 	rm "$BUFFER"
 }
@@ -103,11 +106,11 @@ calc () {
 op (){
 	N1=$(echo "$1"|awk '{print $(NF-1)}')
 	N2=$(echo "$1"|awk '{print $(NF)}')
-	if [[ "$(is_integer $(echo "$N2"|sed -r 's/\.//g'))" == "1" ]] && 
-		 [[ "$(is_integer $(echo "$N1"|sed -r 's/\.//g'))" == "1" ]]; then
+	if [[ "$(is_integer $(echo "$N2"|sed -r 's/\.//'))" == "1" ]] && 
+		 [[ "$(is_integer $(echo "$N1"|sed -r 's/\.//'))" == "1" ]]; then
 		calc  "$N1" "$2" "$N2" 
 	else
-		echo no integer found!
+		echo "Bad expression, n00b!"
 	fi
 }
 
@@ -181,10 +184,13 @@ else
 						;;
 					'meteo')
 						touch "$BUFFER"
-						CITY=$(echo "$STRCLEAN" | awk '{print $(NF)}')           
+						CITY=$(echo "$STRCLEAN" | awk '{print $NF}')           
 						weatherman -x "$CITY, italy" > "$BUFFER"
 						send_text "$NICK" "$BUFFER"
 						rm "$BUFFER"
+						;;
+					'rev')
+						send_msg "$NICK" "$(echo "$STRCLEAN" | sed 's/.*\-rev//g' | rev)"
 						;;
 					'state')
 						if [[ "$NICK" == "$ADMIN" ]]; then
@@ -205,8 +211,8 @@ else
 						botinfo "$NICK" "$NICK2"
 						;;
 					'google'|'g')
-						GOOGLE="https://www.google.it/#q="
-						SEARCHSTR=$(echo "$STRCLEAN"|sed 's/.*\-\-google\ //g;s/\ /\+/g')
+						GOOGLE="https://www.google.it/search?q="
+						SEARCHSTR=$(echo "$STRCLEAN"|sed 's/.*\-g\ //g;s/\ /\+/g')
 						send_msg "$NICK" "$GOOGLE$SEARCHSTR"
 						;;
 					'host')
