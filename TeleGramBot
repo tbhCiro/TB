@@ -175,6 +175,9 @@ else
 					'moltiplica')
 						send_msg "$NICK" "$(op "$STRCLEAN" "*")"
 						;;
+					'random'|'rdm')
+						send_msg "$NICK" "$RANDOM"
+						;;
 					'suca')
 						send_msg "$NICK" "Tua zia!"
 						;;
