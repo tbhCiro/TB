@@ -104,8 +104,9 @@ isGroup(){
 jesus(){
 	SOUR="https://dl.dropboxusercontent.com/u/51889882/blasfem/blasfemy.txt"
 	ALL=$(curl -s $SOUR)
-	NUM=$(echo $ALL | wc -w)
-	echo $ALL | cut -d' ' -f$(shuf -i 1-$NUM -n 1) | sed -e 's/\_/\ /g'
+	N=$(echo $ALL | wc -w)
+	echo $ALL | cut -d' ' -f$(shuf -i 1-$N -n 1) | sed -e 's/\_/\ /g'
+	unset -v N
 }
 
 is_integer() {
@@ -129,6 +130,8 @@ op (){
 	else
 		echo "Bad expression, n00b!"
 	fi
+	unset -v N1
+	unset -v N2
 }
 
 if [[ -f "$LCK" ]]; then
@@ -208,6 +211,7 @@ else
 						weatherman -x "$CITY, italy" > "$BUFFER"
 						send_text "$NICK" "$BUFFER"
 						rm "$BUFFER"
+						unset -v CITY
 						;;
 					'rev')
 						send_msg "$NICK" "$(echo "$STRCLEAN" | sed 's/.*\-rev//g' | rev)"
@@ -220,7 +224,7 @@ else
 							echo "Uptime" >> "$BUFFER"
 							uptime >> "$BUFFER"
 							echo "USER" >> "$BUFFER"
-							echo $USER >> "$BUFFER"
+							echo "$USER" >> "$BUFFER"
 							send_text "$NICK" "$BUFFER"
 							rm "$BUFFER"
 						else
@@ -234,11 +238,15 @@ else
 						GOOGLE="https://www.google.it/search?q="
 						SEARCHSTR=$(echo "$STRCLEAN"|sed 's/.*\-g\ //g;s/\ /\+/g')
 						send_msg "$NICK" "$GOOGLE$SEARCHSTR"
+						unset -v GOOGLE
+						unset -v SEARCHSTR
 						;;
 					'host')
 						SITE=$(echo "$STRCLEAN"|awk '{print $NF}')
 						IP=$(host "$SITE"|awk '/ has address /{print $NF}' |head -n1)
 						send_msg "$NICK" "$NICK2: $SITE -> $IP"
+						unset -v SITE
+						unset -v IP
 						;;
 					'help'|'h')
 						inthelp "$NICK" "$NICK2"
