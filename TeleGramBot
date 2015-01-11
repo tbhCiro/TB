@@ -98,9 +98,7 @@ EOF
 }
 
 str_parser (){
-	#TEMPSTR=$(cat -A "$1" | head -n"$2"| tail -n1| sed -r 's/>>>.*//;s/\^\[\[0\;31m\^\[\[0m\^\[\[|.{6}$|\^\[\[0m\_\^\[\[0\;31m\^\[\[1\;31m|\^\[\[0m\_\^\[\[35\;1m|.*\]_/\ /g')
 	TEMPSTR=$(cat -A "$1" | head -n"$2"| tail -n1| sed -r 's/>>>.*//;s/\^\[\[0\;31m\^\[\[0m\^\[\[|.{6}$|\^\[\[0m\_\^\[\[0\;31m\^\[\[1\;31m|\^\[\[0m\_\^\[\[35\;1m|.*\]_|\^\[\[0m\_\^\[\[0\;31m|\^\[\[0m\^\[\[/\ /g')
-
 	NICK=$(echo "$TEMPSTR" | awk '{print $1}' )
 	if [[ "$(echo "$TEMPSTR" | wc -w)" == "2" ]]; then
 		NICK2=$(echo "$TEMPSTR" | awk '{print $2}' | sed 's/\_/\ /g')
@@ -208,11 +206,15 @@ else
 						send_msg "$NICK" "Tutta per te $NICK2"
 						;;
 					'meteo')
-						touch "$BUFFER"
-						CITY=$(echo "$STRCLEAN" | awk '{print $NF}')           
-						weatherman -x "$CITY, italy" > "$BUFFER"
-						send_text "$NICK" "$BUFFER"
-						rm "$BUFFER"
+						if [[ "$(echo "$STRCLEAN" | awk '{print $NF}' | tr -d '-')" != "$COMMAND" ]]; then
+							touch "$BUFFER"
+							CITY=$(echo "$STRCLEAN" | awk '{print $NF}')           
+							weatherman -x "$CITY, italy" > "$BUFFER"
+							send_text "$NICK" "$BUFFER"
+							rm "$BUFFER"
+						else
+							send_msg "$NICK" "Specifica una citta\`. Ad esempio \`Pi --meteo Torino\`"
+						fi
 						unset -v CITY
 						;;
 					'rev')
@@ -241,7 +243,11 @@ else
 						;;
 					'google'|'g')
 						GOOGLE="https://www.google.it/search?q="
-						SEARCHSTR=$(echo "$STRCLEAN"|sed 's/.*\-g\ //g;s/\ /\+/g')
+						if [[ "$COMMAND" == "g" ]]; then
+							SEARCHSTR=$(echo "$STRCLEAN"|sed 's/.*\-g\ //g;s/\ /\+/g')
+						else
+							SEARCHSTR=$(echo "$STRCLEAN"|sed 's/.*\-google\ //g;s/\ /\+/g')
+						fi
 						send_msg "$NICK" "$GOOGLE$SEARCHSTR"
 						unset -v GOOGLE
 						unset -v SEARCHSTR
@@ -249,7 +255,11 @@ else
 					'host')
 						SITE=$(echo "$STRCLEAN"|awk '{print $NF}')
 						IP=$(host "$SITE"|awk '/ has address /{print $NF}' |head -n1)
-						send_msg "$NICK" "$NICK2: $SITE -> $IP"
+						if [[ "${#IP}" != "0" ]]; then
+							send_msg "$NICK" "$NICK2: $SITE -> $IP"
+						else
+							send_msg "$NICK" "Non ho trovato alcun IP associato a $SITE, mi spiace."
+						fi
 						unset -v SITE
 						unset -v IP
 						;;
