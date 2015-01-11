@@ -47,7 +47,6 @@ fi
 #### END ####
 
 send_text(){
-	[[ "$DEBUG" == "1" ]] && telegram-cli -WDe "send_text $1 $2" 
 	telegram-cli -WDe "send_text $1 $2" >> /dev/null 2>&1
 } # send_text (FILE)
 
@@ -98,13 +97,10 @@ EOF
 	rm "$BUFFER"
 }
 
-#isGroup(){
-#	# use: isGroup raw string n
-#	echo "$1"|sed -r 's/>>>.*//g;s/.*35\;1m|\[0m.*|\^\[//g;s/\ /\_/g'
-#}
-
 str_parser (){
-	TEMPSTR=$(cat -A "$1" | head -n"$2"| tail -n1| sed -r 's/>>>.*//;s/\^\[\[0\;31m\^\[\[0m\^\[\[|.{6}$|\^\[\[0m\_\^\[\[0\;31m\^\[\[1\;31m|\^\[\[0m\_\^\[\[35\;1m|.*\]_/\ /g')
+	#TEMPSTR=$(cat -A "$1" | head -n"$2"| tail -n1| sed -r 's/>>>.*//;s/\^\[\[0\;31m\^\[\[0m\^\[\[|.{6}$|\^\[\[0m\_\^\[\[0\;31m\^\[\[1\;31m|\^\[\[0m\_\^\[\[35\;1m|.*\]_/\ /g')
+	TEMPSTR=$(cat -A "$1" | head -n"$2"| tail -n1| sed -r 's/>>>.*//;s/\^\[\[0\;31m\^\[\[0m\^\[\[|.{6}$|\^\[\[0m\_\^\[\[0\;31m\^\[\[1\;31m|\^\[\[0m\_\^\[\[35\;1m|.*\]_|\^\[\[0m\_\^\[\[0\;31m|\^\[\[0m\^\[\[/\ /g')
+
 	NICK=$(echo "$TEMPSTR" | awk '{print $1}' )
 	if [[ "$(echo "$TEMPSTR" | wc -w)" == "2" ]]; then
 		NICK2=$(echo "$TEMPSTR" | awk '{print $2}' | sed 's/\_/\ /g')
@@ -112,9 +108,9 @@ str_parser (){
 		NICK2=$(echo "$NICK" | sed 's/\_/\ /g' )		
 	fi
 	STRCLEAN=$(cat -A "$1" | head -n"$2" | tail -n1 | sed -r 's/.*>>>\_|.{6}$//g;s/\_/\ /g')	
+	NEWCOMMAND=$(echo "$STRCLEAN" | cut -d' ' -f1)
 	unset -v TEMPSTR
 }
-
 
 jesus(){
 	SOUR="https://dl.dropboxusercontent.com/u/51889882/blasfem/blasfemy.txt"
@@ -155,30 +151,12 @@ else
 	touch "$LCK" # creo il file $LCK
 	# while in ascolto
 	while true; do
-#		TELEG_OUT=$(telegram-cli -e "safe_quit" | grep -i '>>> \|»»» ' | sed 's/\»/\>/g;s/.*]\ \ //g;s/\[\[0m\$/\\n/g')
-	telegram-cli -e "safe_quit" | grep -i '>>> \|»»» ' | sed 's/\ /\_/g'  > "$TELEG_OUT"
-
-#		[[ "$DEBUG" == "1" ]] && [[ "${#TELEG_OUT}" != "0" ]]  && echo -e ">> <DEBUG> $TELEG_OUT"  
-#		NUM=$(echo -e "$TELEG_OUT"| wc -l)  # numero di messaggi in input
+		rm -r "$TELEG_OUT" 2> /dev/null
+		telegram-cli -e "safe_quit" | grep -i '>>> \|»»» ' | sed 's/\ /\_/g'  > "$TELEG_OUT"
 		NUM=$(cat -A "$TELEG_OUT" | wc -l)
-
-#		[[ "${#TELEG_OUT}" == "0" ]] && NUM=0
 		[[ "$DEBUG" == "1" ]] && echo "$NUM"
 		for i in $(seq 1 "$NUM"); do
-			str_parser "$TELEG_OUT" "$i" # return NICK, NICK2, STRCLEAN
-#			STRRAW=$(echo -e "$TELEG_OUT"|head -n"$i"|tail -n1)
-#			STRCLEAN=$(echo "$STRRAW"|sed -r 's/.*>>>\ |\\n|.{4}$.*//g')
-#			[[ "$DEBUG" == "1" ]] && echo -e "STRRAW: $STRRAW\nSTRCLEAN: $STRCLEAN"
-			NEWCOMMAND=$(echo "$STRCLEAN" | cut -d' ' -f1)
-#			NICK=$(isGroup "$STRRAW")
-#			[[ "$NICK" == "(null)" ]] && break # e` un errore molto occasionale di telegram-cli
-#			if [[ "${#NICK}" == "0" ]]; then
-#				echo $STRRAW
-#				NICK2=$(echo "$STRRAW"|sed -r 's/>>>.*|.*\[\[1\;31m|\^\[\[0\;31m\^\[\[0m\^\[\[34\;1m.*//g')
-#				NICK=$(echo "$NICK2" | sed 's/\ /\_/g' )
-#			else
-#				NICK2=$(echo "$STRRAW"|sed -r 's/.*\[1\;31m|\[0\;31m.*//g;s/\^\[//g')
-#			fi
+			str_parser "$TELEG_OUT" "$i" # return NICK, NICK2, STRCLEAN, NEWCOMMAND
 			# cerca parole in tutta la stringa parsata
 			for word in $(echo $STRCLEAN); do
 					[[ "$word" == "M-pM-^_M-^RM-^Z" ]] && send_msg "$NICK" "<3"
@@ -190,9 +168,8 @@ else
 			done
 			[[ "$DEBUG" == "1" ]] && echo 
 			if [[ "$NEWCOMMAND" == "Pi" ]] || [[ "$NEWCOMMAND" == "pi" ]]; then
-				#COMMAND=$(echo $STRCLEAN | sed -r 's/.*\-|\ .*//g')
 				COMMAND=$(echo "$STRCLEAN" | cut -d ' ' -f2 | tr -d '-')
-				echo -e "Channel: "$NICK"  - Command: "$COMMAND""
+				echo -e "Channel: "$NICK" - Command: "$COMMAND""
 				case "$COMMAND" in
 					'Pi'|'pi')
 						true
