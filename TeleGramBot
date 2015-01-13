@@ -29,7 +29,7 @@ SOURCE="https://github.com/umby213/TB"
 VERS="0.0.1beta"
 DEBUG="0"
 
-if [[ "$1" == "--stop" ]]; then 
+if [[ "$1" == --stop ]]; then 
 	rm "$TELEG_OUT" 2> /dev/null
 	rm "$OLDPID" 2> /dev/null
 	rm "$LCK" 2> /dev/null 
@@ -98,6 +98,9 @@ EOF
 }
 
 str_parser (){
+	# use: str_parser "string" "line's number"
+	[[ "${#1}" == 0 ]] && exit 1
+ 	[[ "${#2}" == 0 ]] && exit 1 	
 	TEMPSTR=$(cat -A "$1" | head -n"$2"| tail -n1| sed -r 's/>>>.*//;s/\^\[\[0\;31m\^\[\[0m\^\[\[|.{6}$|\^\[\[0m\_\^\[\[0\;31m\^\[\[1\;31m|\^\[\[0m\_\^\[\[35\;1m|.*\]_|\^\[\[0m\_\^\[\[0\;31m|\^\[\[0m\^\[\[/\ /g')
 	NICK=$(echo "$TEMPSTR" | awk '{print $1}' )
 	if [[ "$(echo "$TEMPSTR" | wc -w)" == "2" ]]; then
@@ -112,7 +115,7 @@ str_parser (){
 
 jesus(){
 	SOUR="https://dl.dropboxusercontent.com/u/51889882/blasfem/blasfemy.txt"
-	ALL=$(curl -s $SOUR)
+	ALL=$(curl -s "$SOUR")
 	N=$(echo $ALL | wc -w)
 	echo $ALL | cut -d' ' -f$(shuf -i 1-$N -n 1) | sed -e 's/\_/\ /g'
 	unset -v N
@@ -154,17 +157,17 @@ else
 		rm -r "$TELEG_OUT" 2> /dev/null
 		telegram-cli -e "safe_quit" | grep -i '>>> \|»»» ' | sed 's/\ /\_/g'  > "$TELEG_OUT"
 		NUM=$(cat -A "$TELEG_OUT" | wc -l)
-		[[ "$DEBUG" == "1" ]] && echo "$NUM"
-		for i in $(seq 1 "$NUM"); do
+		[[ "$DEBUG" == 1 ]] && echo "$NUM"
+		for (( i=0; i<=$NUM; i++ )); do
 			str_parser "$TELEG_OUT" "$i" # return NICK, NICK2, STRCLEAN, NEWCOMMAND
 			# cerca parole in tutta la stringa parsata
 			for word in $(echo $STRCLEAN); do
-					[[ "$word" == "M-pM-^_M-^RM-^Z" ]] && send_msg "$NICK" "<3"
-					[[ "$(echo $word | sed -r 's/\,|\.|\!//g')" == "top" ]] && send_msg "$NICK" "Solo Top"
-					[[ "$word" == "Pinpin" ]] && send_msg "$NICK" "Sono io $BOTNICK *_*"
+					[[ "$word" == M-pM-^_M-^RM-^Z ]] && send_msg "$NICK" "<3"
+					[[ "$(echo $word | sed -r 's/\,|\.|\!//g')" == top ]] && send_msg "$NICK" "Solo Top"
+					[[ "$word" == Pinpin ]] && send_msg "$NICK" "Sono io $BOTNICK *_*"
 					[[ "$word" == "D:" ]] && send_msg "$NICK" "Don't be sad $NICK2! :)"
 					[[ "$word" == ":(" ]] && send_msg "$NICK" "Don't be sad $NICK2! :)"
-					[[ "$DEBUG" == "1" ]] && echo -n "$word "
+					[[ "$DEBUG" == 1 ]] && echo -n "$word "
 			done
 			[[ "$DEBUG" == "1" ]] && echo 
 			if [[ "$NEWCOMMAND" == "Pi" ]] || [[ "$NEWCOMMAND" == "pi" ]]; then
@@ -207,8 +210,7 @@ else
 						;;
 					'meteo')
 						if [[ "$(echo "$STRCLEAN" | awk '{print $NF}' | tr -d '-')" != "$COMMAND" ]]; then
-							touch "$BUFFER"
-							CITY=$(echo "$STRCLEAN" | awk '{print $NF}')           
+							CITY=$(echo "$STRCLEAN" | sed 's/.*\-meteo\ //g' )           
 							weatherman -x "$CITY, italy" > "$BUFFER"
 							send_text "$NICK" "$BUFFER"
 							rm "$BUFFER"
@@ -226,7 +228,7 @@ else
 						TMP=$(echo "$NICK2" | sed -s 's/\ /\_/g' )
 						#Nick e Nick 2 sono diversi se si scrive in un gruppo
 						#Sono uguali se si scrive in una chat , e inoltre introduco una seconda auth per l'admin.
-						if [ "$NICK" == "$TMP" ] && [ "$TMP" == "$ADMIN" ]; then
+						if [[ "$NICK" == "$TMP" ]] && [[ "$TMP" == "$ADMIN" ]]; then
 							touch "$BUFFER"
 							echo "RAM" >> "$BUFFER"
 							free -h >> "$BUFFER"
@@ -249,7 +251,7 @@ else
 						;;
 					'google'|'g')
 						GOOGLE="https://www.google.it/search?q="
-						if [[ "$COMMAND" == "g" ]]; then
+						if [[ "$COMMAND" == g ]]; then
 							SEARCHSTR=$(echo "$STRCLEAN"|sed 's/.*\-g\ //g;s/\ /\+/g')
 						else
 							SEARCHSTR=$(echo "$STRCLEAN"|sed 's/.*\-google\ //g;s/\ /\+/g')
