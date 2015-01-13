@@ -221,24 +221,26 @@ else
 						send_msg "$NICK" "$(echo "$STRCLEAN" | sed 's/.*\-rev//g' | rev)"
 						;;
 					'state')
-                                                echo "$NICK2" > "$BUFFER"
-                                                PROVA=$(sed 's/ /_/g' "$BUFFER")
-                                                #Nick e Nick 2 sono diversi se si scrive in un gruppo
-                                                #Sono uguali se si scrive in una chat , e inoltre introduco una seconda auth per l'admin.             $
-                                                if [ "$NICK" == "$PROVA" ] && [ "$PROVA" == "$ADMIN" ]; then
-                                                        touch "$BUFFER"
-                                                        echo "RAM" >> "$BUFFER"
-                                                        free -h >> "$BUFFER"
-                                                        echo "Uptime" >> "$BUFFER"
-                                                        uptime >> "$BUFFER"
-                                                        echo "USER" >> "$BUFFER"
-                                                        echo "$USER" >> "$BUFFER"
-                                                        send_text "$NICK" "$BUFFER"
-                                                        rm "$BUFFER"
-                                                else
-                                                        inthelp "$NICK" "$NICK2"
-                                                fi
-                                                ;;
+						#echo "$NICK2" > "$BUFFER"
+						#PROVA=$(sed 's/ /_/g' "$BUFFER")
+						TMP=$(echo "$NICK2" | sed -s 's/\ /\_/g' )
+						#Nick e Nick 2 sono diversi se si scrive in un gruppo
+						#Sono uguali se si scrive in una chat , e inoltre introduco una seconda auth per l'admin.
+						if [ "$NICK" == "$TMP" ] && [ "$TMP" == "$ADMIN" ]; then
+							touch "$BUFFER"
+							echo "RAM" >> "$BUFFER"
+							free -h >> "$BUFFER"
+							echo "Uptime" >> "$BUFFER"
+							uptime >> "$BUFFER"
+							echo "USER" >> "$BUFFER"
+							echo "$USER" >> "$BUFFER"
+							send_text "$NICK" "$BUFFER"
+							rm "$BUFFER"
+						else
+							inthelp "$NICK" "$NICK2"
+						fi
+						unset -v TMP
+						;;
 					'yaourt')
 						send_msg "$NICK" "https://bugs.archlinux.org/task/36440"
 						;;
