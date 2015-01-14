@@ -28,6 +28,7 @@ TELEG_OUT="/tmp/$SCRIPTNAME_tgb.buffer"
 SOURCE="https://github.com/umby213/TB"
 VERS="0.0.1beta"
 DEBUG="0"
+AUTH=0 #Variabile globale di autenticazione
 
 if [[ "$1" == --stop ]]; then 
 	rm "$TELEG_OUT" 2> /dev/null
@@ -57,6 +58,9 @@ send_msg(){
 
 send_photo(){
 	telegram-cli -WDe "send_photo $1 $2"
+}
+send_msg_noauth(){
+	send_msg "$1" "Non sei autorizzato a Visualizzare Questo messaggio!"
 }
 
 inthelp(){
@@ -96,7 +100,35 @@ EOF
 	send_text "$1" "$BUFFER"
 	rm "$BUFFER"
 }
+adminhelp(){
+	touch "$BUFFER"
+	cat > "$BUFFER" << EOF
+Da ${BOTNICK: -BetaBot}
+Benvenuto Nella Help Admin $2!
+Comandi accettati:
+--state -> Stato della RAM , uptime , user
+--intip -> Visualizza l'IP in LAN
+--extip -> Visualizza l'IP pubblico
+--temp -> Visualizza La Temperatura del Raspberry
+--pacman -> Visualizza Aggiornamenti Di Pacman
+--cower -> Visualizza Aggiornamenti Di AUR
+EOF
+	send_text "$1" "$BUFFER"
+	rm "$BUFFER"
+}
 
+authight(){
+	TMP=$(echo "$1" | sed -s 's/\ /\_/g' )
+	if [[ "$2" == "$TMP" ]] && [[ "$TMP" == "$3" ]]; then
+		AUTH=1
+	fi
+}
+authlow(){
+	TMP=$(echo "$1" | sed -s 's/\ /\_/g' )
+	if [[ "$2" == "$TMP" ]]; then
+		AUTH=1
+	fi
+}
 str_parser (){
 	# use: str_parser "string" "line's number"
 	[[ "${#1}" == 0 ]] && exit 1
@@ -222,6 +254,61 @@ else
 					'rev')
 						send_msg "$NICK" "$(echo "$STRCLEAN" | sed 's/.*\-rev//g' | rev)"
 						;;
+					'term')
+                                                IP=$(/opt/vc/bin/vcgencmd measure_temp)
+                                                send_msg "$NICK" "$IP"
+                                                ;;
+                                        'admin')
+                                                authlow "$NICK2" "$ADMIN"       
+                                                if [ "$AUTH" == "1" ]; then
+                                                        adminhelp "$NICK" "$NICK2"
+
+                                                else
+                                                        send_msg_noauth "$NICK"
+                                                fi
+                                                ;;
+
+					'extip')
+						authlow "$NICK2" "$ADMIN"
+						if [ "$AUTH" == "1" ]; then
+							EXTIP=$(curl -s ipinfo.io/ip)
+							send_msg "$NICK" "Nel Mondo Mi puoi trovare qui: $EXTIP"
+						else
+						send_msg_noauth "$NICK"
+						fi
+					;;
+					'pacman')
+						authight "$NICK2" "$NICK" "$ADMIN"
+						if [ "$AUTH" == "1" ]; then
+							checkupdates > "$BUFFER"
+							send_text "$NICK" "$BUFFER"
+							rm "$BUFFER"
+						else
+							send_msg_noauth "$NICK"
+						fi
+						;;
+					'cower')
+						authight "$NICK2" "$NICK" "$ADMIN"
+						if [ "$AUTH" == "1" ]; then
+							cower -u > "$BUFFER"
+							send_text "$NICK" "$BUFFER"
+							rm "$BUFFER"
+						else
+							send_msg_noauth "$NICK"
+						fi
+						;;
+					'intip')
+						authlow "$NICK2" "$ADMIN"
+						if [ "$AUTH" == "1" ]; then
+							touch "$BUFFER"
+							networkctl status > "$BUFFER"
+							send_msg "$NICK" "In Casa Mi puoi trovare qui: "
+							send_text "$NICK" "$BUFFER"
+							rm "$BUFFER"
+						else
+							send_msg_noauth "$NICK"
+						fi
+						;;
 					'state')
 						#echo "$NICK2" > "$BUFFER"
 						#PROVA=$(sed 's/ /_/g' "$BUFFER")
@@ -282,7 +369,7 @@ else
 				unset -v NICK2
 				unset -v STRCLEAN
 				unset -v NEWCOMMAND
-			fi
+				AUTH=0			fi
 			if [[ "$DEBUG" == "0" ]]; then
 				cat -A "$TELEG_OUT" >> "$HOME/TB_($(date +%F))_logs.log"
 			else
